@@ -1,0 +1,37 @@
+version: '2'  
+services:  
+  proxy:
+    image: jwilder/nginx-proxy
+    container_name: nginx-proxy
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - /etc/nginx/vhost.d # to update vhost configuration
+      - /usr/share/nginx/html # to write challenge files
+      - ./certs:/etc/nginx/certs:ro # update this to change cert location
+  web:
+    image: 'nginx'
+    container_name: nginx-web
+    expose: 
+      - '80'
+    environment:
+      - VIRTUAL_HOST=humle.rylander.io,dumle.rylander.io,synods01.rylander.io,synods02.rylander.io,fw.rylander.io,humle-ilo.rylander.io,dumle-ilo.rylander.io
+      - VIRTUAL_PORT=80
+      - LETSENCRYPT_TEST=false
+      - LETSENCRYPT_HOST=humle.rylander.io,dumle.rylander.io,synods01.rylander.io,synods02.rylander.io,fw.rylander.io,humle-ilo.rylander.io,dumle-ilo.rylander.io
+      - LETSENCRYPT_EMAIL=mattias.rylander@gmail.com
+  ssl-companion:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    container_name: ssl-companion
+    dns:
+      - '8.8.8.8'
+      - '8.8.4.4'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro #companion maps differently
+      - ./certs:/etc/nginx/certs:rw # same path as above, now RW
+    volumes_from:
+      - proxy
+    depends_on:
+      - proxy
